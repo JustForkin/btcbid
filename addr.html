@@ -20,6 +20,8 @@ function encrypt_bid(pubkey_hex, price, quantity)
     // Padding
     msg += "0000000000000000"
 
+    console.log('Encoding message ' + msg);
+
     // Convert msg into Fp
     m = BigInteger.fromHex(msg)         // BigInteger
 
