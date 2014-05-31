@@ -55,11 +55,7 @@ function encrypt_bid(pubkey_hex, price, quantity)
     // d = c*m mod q
     var d = c.multiply(m).mod(ecparam.getCurve().getQ())    // BigInteger
 
-    console.log('Encrypted to (C, d) = ' + BigInteger.fromDERInteger(C.getEncoded(1)).toHex() + ", " + d.toHex())
-
-
-    //console.log('pubkey Q: ' + pubkey.Q)
-    //x = BigInteger.fromHex('04');
+    return [BigInteger.fromDERInteger(C.getEncoded(1)).toHex(), d.toHex()]
 }
 
 function go() {
@@ -73,13 +69,12 @@ function go() {
     console.log('-----------------------------------------------')
 
 
-
-    encrypt_bid(key.pub.toHex(), 615, 1);
-
     // Alice 10 BTC -> MarketMaker
     //              -> OP_RETURN E_MM(price, quantity, salt)
 
+    var enc = encrypt_bid(key.pub.toHex(), 615, 1);
 
+    console.log('Encrypted to (C, d): ' + enc[0] + ', ' + enc[1])
 
 }
 
