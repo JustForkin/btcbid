@@ -13,11 +13,10 @@ var CURVE = 'secp256k1';
 // price and quantity are integers between 0 and 2*32-1
 function encrypt_bid(pubkey_hex, price, quantity)
 {
-    // 0 padded hex price (8 bytes) || quantity (8 bytes)
+    // Message consists of hex price (8 bytes), quantity (8 bytes), padding (8 bytes)
     msg = ("0000000000000000" + price.toString(16)).slice(-16)
     msg += ("0000000000000000" + quantity.toString(16)).slice(-16)
-    // Padding
-    msg += "0000000000000000"
+    msg += "0000000000000000"   // Padding, could be randomized (don't think this is needed though?)
 
     console.log('Encoding message ' + msg);
 
@@ -99,12 +98,22 @@ function go() {
     console.log('-----------------------------------------------')
 
 
+    // E_MM(price, quantity, salt) -> C, d
+
     // Alice 10 BTC -> MarketMaker
-    //              -> OP_RETURN E_MM(price, quantity, salt)
+    //              -> OP_RETURN C
+    //              -> OP_RETURN d
 
     var enc = encrypt_bid(key.pub.toHex(), 615, 1);
 
     console.log('Encrypted to (C, d): ' + enc[0] + ', ' + enc[1])
+
+
+
+
+
+
+
 
     // Now decrypt it
     dec = decrypt_bid(key, enc[0], enc[1])
