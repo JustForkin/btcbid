@@ -8,6 +8,7 @@
 
 var CURVE_SIZE = 32;    // Bytes
 var CURVE = 'secp256k1';
+var VERSION = Bitcoin.networks.testnet;
 
 // pubkey_hex is a bitcoin pubkey in hex
 // price and quantity are integers between 0 and 2*32-1
@@ -93,7 +94,7 @@ function go() {
 
     console.log('-----------------------------------------------')
     console.log('Warning: do NOT use this as a bitcoin address')
-    console.log('Market Maker Private key: ' + key.toWIF())
+    console.log('Market Maker Private key: ' + key.toWIF(VERSION.wif))
     console.log('Market Maker Public key:  ' + key.pub.toHex())
     console.log('-----------------------------------------------')
 
@@ -109,10 +110,31 @@ function go() {
     console.log('Encrypted to (C, d): ' + enc[0] + ', ' + enc[1])
 
 
+    // Ouput 0: coins to market maker
+    // TODO: make this address setable; not the above key
+    //sout0 = new Bitcoin.Script.createPubKeyHashScriptPubKey(
+    sout0 = key.pub.getAddress(VERSION.pubKeyHash).toScriptPubKey()
+    txout0 = new Bitcoin.TransactionOut({script: sout0, value: 615})
+
+    // Encode C in an OP_RETURN <data>
+    sout1 = new Bitcoin.Script()
+    sout1.writeOp(Bitcoin.opcodes.OP_RETURN)
+    sout1.writeBytes(Buffer.Buffer(enc[0], "hex"))
+    txout1 = new Bitcoin.TransactionOut({script: sout1, value: 1})
+
+    // Encode d in an OP_RETURN <data>
+    sout2 = new Bitcoin.Script()
+    sout2.writeOp(Bitcoin.opcodes.OP_RETURN)
+    sout2.writeBytes(Buffer.Buffer(enc[1], "hex"))
+    txout2 = new Bitcoin.TransactionOut({script: sout2, value: 1})
 
 
+    tx = new Bitcoin.Transaction()
+    tx.addOutput(txout0)
+    tx.addOutput(txout1)
+    tx.addOutput(txout2)
 
-
+    console.log('Please create a tx with the following outputs: ' + tx.toHex())
 
 
     // Now decrypt it
