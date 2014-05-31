@@ -1,21 +1,83 @@
 <html>
   <head>
     <script src="bitcoinjs-min.js"></script>
+    <script src="bigi.js"></script>
     <!--<script src="buffer-min.js"></script>-->
 
     <script type="text/javascript">
+
+var x;
+
+var CURVE_SIZE = 32;    // Bytes
+
+// pubkey_hex is a bitcoin pubkey in hex
+// price and quantity are integers between 0 and 2*32-1
+function encrypt_bid(pubkey_hex, price, quantity)
+{
+    // 0 padded hex price (8 bytes) || quantity (8 bytes)
+    msg = ("0000000000000000" + price.toString(16)).slice(-16)
+    msg += ("0000000000000000" + quantity.toString(16)).slice(-16)
+    // Padding
+    msg += "0000000000000000"
+
+    // Convert msg into Fp
+    m = BigInteger.fromHex(msg)         // BigInteger
+
+    // Get pubkey from hex
+    var pubkey = Bitcoin.ECPubKey.fromHex(pubkey_hex)
+
+
+    // generate random k in F_p
+    var k_arr = new Uint8Array(CURVE_SIZE);
+    window.crypto.getRandomValues(k_arr);
+    // HACK: BigInteger expects a DER encoded string and
+    // fromByteArrayUnsigned's wrapper doesn't handle TypedArrays correctly
+    if (k_arr[0] & 0x80) {
+        var k_arr_hack = new Uint8Array(CURVE_SIZE+1);
+        k_arr_hack[0] = 0;
+        for (i=0; i<CURVE_SIZE; i++)
+            k_arr_hack[i+1] = k_arr[i];
+        k_arr = k_arr_hack;
+    }
+    k = BigInteger.fromByteArrayUnsigned(k_arr);
+
+    // This is the curve we'll use
+    ecparam = Bitcoin.sec('secp256r1')
+
+    // Calculate C = kP
+    var C = ecparam.getG().multiply(k)    // ECPointFp
+
+    // calculate c = x_coord(kY)
+    var c = pubkey.Q.multiply(k).x.toBigInteger()    // BigInteger
+
+    // d = c*m mod q
+    var d = c.multiply(m).mod(ecparam.getCurve().getQ())    // BigInteger
+
+    console.log('Encrypted to (C, d) = ' + BigInteger.fromDERInteger(C.getEncoded(1)).toHex() + ", " + d.toHex())
+
+
+    //console.log('pubkey Q: ' + pubkey.Q)
+    //x = BigInteger.fromHex('04');
+}
 
 function go() {
 
     var key = Bitcoin.ECKey.makeRandom()
 
-    // Print your private key (in WIF format)
-    console.log(key.toWIF())
-    // => 8c112cf628362ecf4d482f68af2dbb50c8a2cb90d226215de925417aa9336a48
+    console.log('-----------------------------------------------')
+    console.log('Warning: do NOT use this as a bitcoin address')
+    console.log('Market Maker Private key: ' + key.toWIF())
+    console.log('Market Maker Public key:  ' + key.pub.toHex())
+    console.log('-----------------------------------------------')
 
-    // Print your public key (toString defaults to a Bitcoin address)
-    console.log(key.pub.getAddress().toString())
-    // => 14bZ7YWde4KdRb5YN7GYkToz3EHVCvRxkF
+
+
+    encrypt_bid(key.pub.toHex(), 615, 1);
+
+    // Alice 10 BTC -> MarketMaker
+    //              -> OP_RETURN E_MM(price, quantity, salt)
+
+
 
 }
 
