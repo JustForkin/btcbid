@@ -6,10 +6,8 @@
 
     <script type="text/javascript">
 
-var x;
-
 var CURVE_SIZE = 32;    // Bytes
-var CURVE = 'secp256r1';
+var CURVE = 'secp256k1';
 
 // pubkey_hex is a bitcoin pubkey in hex
 // price and quantity are integers between 0 and 2*32-1
@@ -26,8 +24,9 @@ function encrypt_bid(pubkey_hex, price, quantity)
     // Convert msg into Fp
     m = BigInteger.fromHex(msg)         // BigInteger
 
+
     // Get pubkey from hex
-    var pubkey = Bitcoin.ECPubKey.fromHex(pubkey_hex)
+    pubkey = Bitcoin.ECPubKey.fromHex(pubkey_hex)
 
 
     // generate random k in F_p
@@ -50,8 +49,9 @@ function encrypt_bid(pubkey_hex, price, quantity)
     // Calculate C = kP
     var C = ecparam.getG().multiply(k)    // ECPointFp
 
-    // calculate c = x_coord(kY)
-    var c = pubkey.Q.multiply(k).x.toBigInteger()    // BigInteger
+    // calculate c = x_coord(kY) = x_coord(kxP)
+    var kxP = pubkey.Q.multiply(k)
+    var c = kxP.getX().toBigInteger()    // BigInteger
 
     // d = c*m mod q
     var d = c.multiply(m).mod(ecparam.getCurve().getQ())    // BigInteger
@@ -65,7 +65,6 @@ function hex2arr(str)
     for (i=0; i<str.length; i+=2) {
         arr.push(parseInt(str.substr(i, 2), 16))
     }
-    //return new Uint8Array(arr);
     return Buffer.Buffer(arr);
 }
 
@@ -73,17 +72,25 @@ function decrypt_bid(key, C_hex, d_hex)
 {
     ecparam = Bitcoin.sec(CURVE)
 
-    C = Bitcoin.ECPointFp.decodeFrom(ecparam.getCurve(), hex2arr(C_hex))
+    // Convert from hex to ECPointFp and BigInteger
+    C = Bitcoin.ECPointFp.decodeFrom(ecparam.getCurve(), hex2arr(C_hex)).Q
+    d = BigInteger.fromHex(d_hex);
 
     // calculate c' = x_coord(xC)
+    x = key.D
+    c1 = C.multiply(x)
+    c = c1.getX().toBigInteger()
 
     // m = d/c' mod q
+    q = ecparam.getCurve().getQ()
+    m = d.multiply(c.modInverse(q)).mod(q)
 
+    return m.toHex()
 }
 
 function go() {
 
-    var key = Bitcoin.ECKey.makeRandom()
+    key = Bitcoin.ECKey.makeRandom()
 
     console.log('-----------------------------------------------')
     console.log('Warning: do NOT use this as a bitcoin address')
@@ -100,7 +107,10 @@ function go() {
     console.log('Encrypted to (C, d): ' + enc[0] + ', ' + enc[1])
 
     // Now decrypt it
-    decrypt_bid(key, enc[0], enc[1])
+    dec = decrypt_bid(key, enc[0], enc[1])
+
+    console.log('Decrypted to ' + dec);
+
 }
 
 window.onload=go;
