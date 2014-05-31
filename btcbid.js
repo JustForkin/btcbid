@@ -154,7 +154,7 @@ function create_transaction(inputs, pubkey, data, needed)
     // TODO: make this address setable; not the above key
     //sout0 = new Bitcoin.Script.createPubKeyHashScriptPubKey(
     sout0 = pubkey.getAddress(VERSION.pubKeyHash).toScriptPubKey()
-    txout0 = new Bitcoin.TransactionOut({script: sout0, value: output})
+    txout0 = new Bitcoin.TransactionOut({script: sout0, value: needed})
 
     // Encode C in an OP_RETURN <data>
     sout1 = new Bitcoin.Script()
