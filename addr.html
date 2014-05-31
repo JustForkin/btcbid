@@ -39,11 +39,11 @@
           <p>
           <span class="control-group" id="1">
             <b>Price:</b>
-            <input type="text" class="input-large search-query" id="price" name="price" onchange="updateBid()"/>
+            <input type="text" class="input-large search-query" id="price" name="price" onchange="update_bid()"/>
           </span>
           <span class="control-group" id="2">
             <b>Qunatity:</b>
-            <input type="text" class="input-large search-query" id="quantity" name="quantity" onchange="updateBid()"/>
+            <input type="text" class="input-large search-query" id="quantity" name="quantity" onchange="update_bid()"/>
           </span>
           </p>
 
@@ -53,8 +53,13 @@
 
           <p>
             You can get this by running <code>bitcoin-cli listunspent</code>.
-            <textarea class="input-small span11" rows="8" id="unspent" name="unspent" onchange="updateBid()"></textarea>
+            <textarea class="input-small span11" rows="8" id="unspent" name="unspent" onchange="update_bid()"></textarea>
           </p>
+
+          <div class="alert alert-warning" id="unspent-error">
+            Looks like your unspent transactions only total to
+            <b><span id="unspent-total">0</span> BTC</b>. Please add more.
+          </div>
 
 
         </form>
@@ -68,12 +73,8 @@
 
           <p>Or if you don't trust me, you can run <code>bitcoin-cli decoderawtransaction</code> on it to verify it does what you think it should.</p>
 
-          <p><textarea class="input-small span11" rows="4" readonly="readonly">01010101</textarea></p>
+          <p><textarea class="input-small span11" rows="4" readonly="readonly" id="txout"></textarea></p>
 
-          <div class="alert alert-warning" id="unspent-error">
-            Looks like your unspent transactions only total to
-            <b><span id="unspent-total">0</span> BTC</b>. Please add more.
-          </div>
           </form>
         </div>
 

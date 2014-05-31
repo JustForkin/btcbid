@@ -4,9 +4,11 @@ var CURVE = 'secp256k1';
 var VERSION = Bitcoin.networks.testnet;
 var SATOSHI_PER_BTC = 100000000;
 
+var pubkey_hex = '03720b09514e34c7d7cb5f7b83fbf01f42f4aad4d8848a612d0cfffa8412ae2e91';
+
 // pubkey_hex is a bitcoin pubkey in hex
 // price and quantity are integers between 0 and 2*32-1
-function encrypt_bid(pubkey_hex, price, quantity)
+function encrypt_bid(pubkey, price, quantity)
 {
     // Message consists of hex price (8 bytes), quantity (8 bytes), padding (8 bytes)
     msg = ("0000000000000000" + price.toString(16)).slice(-16)
@@ -17,11 +19,6 @@ function encrypt_bid(pubkey_hex, price, quantity)
 
     // Convert msg into Fp
     m = BigInteger.fromHex(msg)         // BigInteger
-
-
-    // Get pubkey from hex
-    pubkey = Bitcoin.ECPubKey.fromHex(pubkey_hex)
-
 
     // generate random k in F_p
     var k_arr = new Uint8Array(CURVE_SIZE);
@@ -104,33 +101,6 @@ function go() {
     console.log('Encrypted to (C, d): ' + enc[0] + ', ' + enc[1])
 
 
-    // Ouput 0: coins to market maker
-    // TODO: make this address setable; not the above key
-    //sout0 = new Bitcoin.Script.createPubKeyHashScriptPubKey(
-    sout0 = key.pub.getAddress(VERSION.pubKeyHash).toScriptPubKey()
-    txout0 = new Bitcoin.TransactionOut({script: sout0, value: 615})
-
-    // Encode C in an OP_RETURN <data>
-    sout1 = new Bitcoin.Script()
-    sout1.writeOp(Bitcoin.opcodes.OP_RETURN)
-    sout1.writeBytes(Buffer.Buffer(enc[0], "hex"))
-    txout1 = new Bitcoin.TransactionOut({script: sout1, value: 1})
-
-    // Encode d in an OP_RETURN <data>
-    sout2 = new Bitcoin.Script()
-    sout2.writeOp(Bitcoin.opcodes.OP_RETURN)
-    sout2.writeBytes(Buffer.Buffer(enc[1], "hex"))
-    txout2 = new Bitcoin.TransactionOut({script: sout2, value: 1})
-
-
-    tx = new Bitcoin.Transaction()
-    tx.addOutput(txout0)
-    tx.addOutput(txout1)
-    tx.addOutput(txout2)
-
-    console.log('Please create a tx with the following outputs: ' + tx.toHex())
-
-
     // Now decrypt it
     dec = decrypt_bid(key, enc[0], enc[1])
 
@@ -151,20 +121,92 @@ function parse_unspent(satoshi_needed)
         satoshi_found += tx.amount * SATOSHI_PER_BTC;
 
         if (satoshi_found >= satoshi_needed) {
+            $('#unspent-error').hide()
             return inputs;
         }
     }
 
-    $('#unspent-total').innerHTML = satoshi_found / SATOISHI_PER_BTC;
+    $('#unspent-total')[0].innerHTML = (satoshi_found / SATOSHI_PER_BTC);
     $('#unspent-error').show()
+    return false;
+}
+
+function create_transaction(inputs, pubkey, data, needed)
+{
+
+    tx = new Bitcoin.Transaction()
+    var change_addr
+    var provided = 0
+
+    for (i=0; i<inputs.length; i++) {
+        if (inputs[i].address != undefined && change_addr == undefined) {
+            change_addr = inputs[i].address;    // HACK, change goes to first address
+        }
+
+        sin = Bitcoin.Script.fromHex(inputs[i].scriptPubKey)
+        txin = new Bitcoin.TransactionIn({ hash: inputs[i].txid, index: inputs[i].vout, script: sin })
+        tx.addInput(txin);
+        provided += inputs[i].amount * SATOSHI_PER_BTC
+    }
+
+
+    // Ouput 0: coins to market maker
+    // TODO: make this address setable; not the above key
+    //sout0 = new Bitcoin.Script.createPubKeyHashScriptPubKey(
+    sout0 = pubkey.getAddress(VERSION.pubKeyHash).toScriptPubKey()
+    txout0 = new Bitcoin.TransactionOut({script: sout0, value: output})
+
+    // Encode C in an OP_RETURN <data>
+    sout1 = new Bitcoin.Script()
+    sout1.writeOp(Bitcoin.opcodes.OP_RETURN)
+    sout1.writeBytes(Buffer.Buffer(data[0], "hex"))
+    txout1 = new Bitcoin.TransactionOut({script: sout1, value: 1})
+
+    // Encode d in an OP_RETURN <data>
+    sout2 = new Bitcoin.Script()
+    sout2.writeOp(Bitcoin.opcodes.OP_RETURN)
+    sout2.writeBytes(Buffer.Buffer(data[1], "hex"))
+    txout2 = new Bitcoin.TransactionOut({script: sout2, value: 1})
+
+    // Change address
+    fee = 0 // Wheeeeee
+    sout3 = Bitcoin.Address.fromBase58Check(change_addr).toScriptPubKey()
+    txout3 = new Bitcoin.TransactionOut({script: sout3, value: (provided - needed - 2 - fee)})
+
+    tx.addOutput(txout0)
+    tx.addOutput(txout1)
+    tx.addOutput(txout2)
+    tx.addOutput(txout3)
+
+    console.log('Please sign this tx: ' + tx.toHex())
+    $('#txout')[0].innerHTML = tx.toHex()
 }
 
 function update_bid()
 {
-    
+    price = $('#price')[0].value
+    quantity = $('#quantity')[0].value
+
+    needed = price * SATOSHI_PER_BTC * quantity
+
+    $('#required')[0].innerHTML = needed / SATOSHI_PER_BTC;
+
+    txs = parse_unspent(needed);
+    if (txs === false) {
+        $('#txout')[0].innerHTML = '';
+        return
+    }
+
+
+    // Get pubkey from hex
+    pubkey = Bitcoin.ECPubKey.fromHex(pubkey_hex)
+
+    enc_data = encrypt_bid(pubkey, price*SATOSHI_PER_BTC, quantity)
+
+    create_transaction(txs, pubkey, enc_data, needed)
 }
 
-window.onload=go;
+//window.onload=go;
 
 
 
