@@ -69,6 +69,11 @@
           <p>Or if you don't trust me, you can run <code>bitcoin-cli decoderawtransaction</code> on it to verify it does what you think it should.</p>
 
           <p><textarea class="input-small span11" rows="4" readonly="readonly">01010101</textarea></p>
+
+          <div class="alert alert-warning" id="unspent-error">
+            Looks like your unspent transactions only total to
+            <b><span id="unspent-total">0</span> BTC</b>. Please add more.
+          </div>
           </form>
         </div>
 

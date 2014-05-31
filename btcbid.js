@@ -2,6 +2,7 @@
 var CURVE_SIZE = 32;    // Bytes
 var CURVE = 'secp256k1';
 var VERSION = Bitcoin.networks.testnet;
+var SATOSHI_PER_BTC = 100000000;
 
 // pubkey_hex is a bitcoin pubkey in hex
 // price and quantity are integers between 0 and 2*32-1
@@ -137,7 +138,28 @@ function go() {
 
 }
 
-function updateBid()
+function parse_unspent(satoshi_needed)
+{
+    utxo = JSON.parse($('#unspent')[0].value)
+    satoshi_found = 0;  // TODO: have a smarter algorithm that tries to minimize inputs
+                        // or change?
+    inputs = []
+    for (i=0; i<utxo.length; i++) {
+        tx = utxo[i]
+
+        inputs.push(tx);
+        satoshi_found += tx.amount * SATOSHI_PER_BTC;
+
+        if (satoshi_found >= satoshi_needed) {
+            return inputs;
+        }
+    }
+
+    $('#unspent-total').innerHTML = satoshi_found / SATOISHI_PER_BTC;
+    $('#unspent-error').show()
+}
+
+function update_bid()
 {
     
 }
