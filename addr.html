@@ -2,13 +2,14 @@
   <head>
     <script src="bitcoinjs-min.js"></script>
     <script src="bigi.js"></script>
-    <!--<script src="buffer-min.js"></script>-->
+    <script src="buffer.js"></script>
 
     <script type="text/javascript">
 
 var x;
 
 var CURVE_SIZE = 32;    // Bytes
+var CURVE = 'secp256r1';
 
 // pubkey_hex is a bitcoin pubkey in hex
 // price and quantity are integers between 0 and 2*32-1
@@ -44,7 +45,7 @@ function encrypt_bid(pubkey_hex, price, quantity)
     k = BigInteger.fromByteArrayUnsigned(k_arr);
 
     // This is the curve we'll use
-    ecparam = Bitcoin.sec('secp256r1')
+    ecparam = Bitcoin.sec(CURVE)
 
     // Calculate C = kP
     var C = ecparam.getG().multiply(k)    // ECPointFp
@@ -56,6 +57,28 @@ function encrypt_bid(pubkey_hex, price, quantity)
     var d = c.multiply(m).mod(ecparam.getCurve().getQ())    // BigInteger
 
     return [BigInteger.fromDERInteger(C.getEncoded(1)).toHex(), d.toHex()]
+}
+
+function hex2arr(str)
+{
+    var arr = [];
+    for (i=0; i<str.length; i+=2) {
+        arr.push(parseInt(str.substr(i, 2), 16))
+    }
+    //return new Uint8Array(arr);
+    return Buffer.Buffer(arr);
+}
+
+function decrypt_bid(key, C_hex, d_hex)
+{
+    ecparam = Bitcoin.sec(CURVE)
+
+    C = Bitcoin.ECPointFp.decodeFrom(ecparam.getCurve(), hex2arr(C_hex))
+
+    // calculate c' = x_coord(xC)
+
+    // m = d/c' mod q
+
 }
 
 function go() {
@@ -76,6 +99,8 @@ function go() {
 
     console.log('Encrypted to (C, d): ' + enc[0] + ', ' + enc[1])
 
+    // Now decrypt it
+    decrypt_bid(key, enc[0], enc[1])
 }
 
 window.onload=go;
