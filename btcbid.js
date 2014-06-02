@@ -10,10 +10,10 @@ var pubkey_hex = '03720b09514e34c7d7cb5f7b83fbf01f42f4aad4d8848a612d0cfffa8412ae
 // price and quantity are integers between 0 and 2*32-1
 function encrypt_bid(pubkey, price, quantity)
 {
-    // Message consists of hex price (8 bytes), quantity (8 bytes), padding (8 bytes)
+    // Message consists of hex price (8 bytes), quantity (4 bytes), padding (12 bytes)
     msg = ("0000000000000000" + price.toString(16)).slice(-16)
-    msg += ("0000000000000000" + quantity.toString(16)).slice(-16)
-    msg += "0000000000000000"   // Padding, could be randomized (don't think this is needed though?)
+    msg += ("00000000" + (quantity>>>0).toString(16)).slice(-8)
+    msg += "000000000000000000000000"   // Padding, could be randomized (don't think this is needed though?)
 
     console.log('Encoding message ' + msg);
 
@@ -203,6 +203,9 @@ function update_bid()
 
     enc_data = encrypt_bid(pubkey, price*SATOSHI_PER_BTC, quantity)
 
+    if (needed < 1) {
+        needed = 1
+    }
     create_transaction(txs, pubkey, enc_data, needed)
 }
 
