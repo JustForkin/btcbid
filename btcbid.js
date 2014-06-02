@@ -4,7 +4,7 @@ var CURVE = 'secp256k1';
 var VERSION = Bitcoin.networks.testnet;
 var SATOSHI_PER_BTC = 100000000;
 
-var pubkey_hex = '03720b09514e34c7d7cb5f7b83fbf01f42f4aad4d8848a612d0cfffa8412ae2e91';
+var pubkey_hex = '02a5b2934a4c74d5e3023b55324c85dc8b5bd907c6a60ca0e899ed265d3873bd49';
 
 // pubkey_hex is a bitcoin pubkey in hex
 // price and quantity are integers between 0 and 2*32-1
